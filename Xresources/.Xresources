@@ -1,0 +1,45 @@
+! special 
+*.foreground: #e2dfdd
+*.background: #060606
+*.cursorColor: #e2dfdd
+
+! black
+*.color0: #040403
+*.color8: #e095b9
+
+! red
+*.color1: #141212
+*.color9: #b797e8
+
+! green
+*.color2: #272423
+*.color10: #97b041
+
+! yellow
+*.color3: #413d3a
+*.color11: #e25ea5
+
+! blue
+*.color4: #625c59
+*.color12: #62c2e0
+
+! magenta
+*.color5: #8a827d
+*.color13: #aec56f
+
+! cyan 
+*.color6: #b8ada8
+*.color14: #a04aeb
+
+! white
+*.color7: #e5e2e0
+*.color15: #afc472
+
+
+#fonts
+!URxvt.font: xft:Courier New:pixelsize=15
+URxvt.font: xft:UbuntuMono-R:pixelsize=15
+
+#scroll bar
+
+URxvt.scrollBar: false 
