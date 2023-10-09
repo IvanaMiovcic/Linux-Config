@@ -191,3 +191,8 @@ bindsym $mod+r mode "resize"
 bar {
         status_command i3status
 }
+# Inner gaps for all windows. A.k.a. space between two adjacent windows
+gaps inner 10px
+
+# Outer gap betwee windows and screen edges 
+gaps outer 5px
