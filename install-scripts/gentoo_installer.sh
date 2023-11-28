@@ -49,8 +49,23 @@ then
 	echo p
 	echo  
 	echo  
-	echo  
+	echo +128M  
 	echo Y
+	echo n
+	echo p
+	echo 
+	echo 
+	echo +1024M
+	echo Y
+	echo n
+	echo p
+	echo 
+	echo 
+	echo 
+	echo Y
+	echo t
+	echo 2
+	echo 82
 	echo w
 	) | fdisk /dev/$1
 else
@@ -89,32 +104,41 @@ else
 fi
 
 #formatting partitions
-mkfs.ext4 /dev/"$1"p1
-if [ "$2" != "BIOS/MBR" ]
+if [ ${1::4} == "nvme" ]
 then 
-	mkfs.ext4 /dev/"$1"p4
-	mkswap /dev/"$1"p3 && swapon /dev/"$1"p3
+	part=p
+else 
+	part=
+fi 
+mkfs.ext4 /dev/"$1""$part"1
+if [ "$2" == "BIOS/MBR" ]
+then 
+	mkfs.ext4 /dev/"$1""$part"3
+	mkswap /dev/"$1""$part"2 && swapon /dev/"$1""$part"2
+else	
+	mkfs.ext4 /dev/"$1""$part"4
+	mkswap /dev/"$1""$part"3 && swapon /dev/"$1""$part"3
 fi
 if [ "$2" == "UEFI/GPT" ]
 then 
-	mkfs.vfat -F 32 /dev/"$1"p2
+	mkfs.vfat -F 32 /dev/"$1""$part"2
 fi
 
 #mount partitions
  
 mkdir -p /mnt/gentoo
+mkdir /mnt/gentoo/boot
+mount /dev/"$1""$part"1 /mnt/gentoo/boot
 if [ "$2" == "BIOS/MBR" ] 
 then 
-	mount /dev/"$1"p1 /mnt/gentoo
+	mount /dev/"$1""$part"3 /mnt/gentoo
 else
-	mount /dev/"$1"p4 /mnt/gentoo
-	mkdir /mnt/gentoo/boot
-	mount /dev/"$1"p1 /mnt/gentoo/boot
+	mount /dev/"$1""$part"4 /mnt/gentoo
 fi 
 if [ "$2" == "UEFI/GPT" ]
 then 
 	mkdir /mnt/gentoo/boot/efi
-	mount /dev/"$1"p2 /mnt/gentoo/boot/efi
+	mount /dev/"$1""$part"2 /mnt/gentoo/boot/efi
 fi	
 cp chroot_install.sh /mnt/gentoo
  
