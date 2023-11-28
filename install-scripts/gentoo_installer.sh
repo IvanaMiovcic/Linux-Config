@@ -1,41 +1,126 @@
 #!/bin/bash
 
-if [ $# -ne  4 ]
+if [ $# -ne 2 ]
 then 
-echo "Missing positional arguments" 
-exit 1
+	echo "Missing positional arguments" 
+	exit 1
 fi
 
-echo $1 #installation disk 
-echo $2 #root password
-echo $3 #username
-echo $4 #user password
+if [ "$2" != "BIOS/MBR" ] && [ "$2" != "BIOS/GPT" ] && [ "$2" != "UEFI/GPT" ]
+then 
+	echo "Incorrect partitioning option. Exiting."
+	exit 1
+fi
+
+#getting passwords 
+read -sp "Root password: " root1
+echo
+read -sp "Re-enter root password: " root2
+if [ "$root1" != "$root2" ]
+then
+        echo -e "\nPasswords do not match. Exiting."
+        exit 1
+elif [ -z $root1 ]
+then
+        echo -e "\nPassword cannot be empty. Exiting."
+        exit 1
+fi
+echo
+read -p "Username: " username
+read -sp "Password for $username: " user1
+echo
+read -sp "Re-enter password for $username: " user2
+if [ "$user1" != "$user2" ]
+then
+        echo -e "\nPasswords do not match. Exiting."
+        exit 1
+elif [ -z $user1 ]
+then
+        echo -e "\nPassword cannot be empty. Exiting."
+        exit 1
+fi
 
 #partitioning disk 
-(
-echo o # Create a new empty DOS partition table
-echo n # Add a new partition
-echo p # Primary partition
-echo   # Partition number (Accept default: 1)
-echo   # First sector (Accept default: 1)
-echo   # Last sector (Accept default: varies)
-echo Y # Removes signature 
-echo w # Write changes
-) | fdisk /dev/$1
+if [ "$2" == "BIOS/MBR" ]
+then 
+	(
+	echo o
+	echo n
+	echo p
+	echo  
+	echo  
+	echo  
+	echo Y
+	echo w
+	) | fdisk /dev/$1
+else
+	(
+	echo o
+	echo y
+	echo n
+	echo 1
+	echo  
+	echo +128M
+	echo 
+	echo n
+	echo 2
+	echo 
+	if [ "$2" == "BIOS/GPT" ]
+	then
+        	echo +2M
+        	echo EF02
+	else
+        	echo +128MB
+        	echo EF00
+	fi
+	echo n
+	echo 3
+	echo  
+	echo +1024M
+	echo 8200
+	echo n
+	echo 4
+	echo  
+	echo  
+	echo  
+	echo w
+	echo y
+	) | gdisk /dev/"$1"
+fi
 
 #formatting partitions
-#does sda have different naming conventions than nvme???
 mkfs.ext4 /dev/"$1"p1
+if [ "$2" != "BIOS/MBR" ]
+then 
+	mkfs.ext4 /dev/"$1"p4
+	mkswap /dev/"$1"p3 && swapon /dev/"$1"p3
+fi
+if [ "$2" == "UEFI/GPT" ]
+then 
+	mkfs.vfat -F 32 /dev/"$1"p2
+fi
 
 #mount partitions
  
 mkdir -p /mnt/gentoo
-mount /dev/"$1"p1 /mnt/gentoo
-cp chroot_install.sh /mnt/gentoo 
+if [ "$2" == "BIOS/MBR" ] 
+then 
+	mount /dev/"$1"p1 /mnt/gentoo
+else
+	mount /dev/"$1"p4 /mnt/gentoo
+	mkdir /mnt/gentoo/boot
+	mount /dev/"$1"p1 /mnt/gentoo/boot
+fi 
+if [ "$2" == "UEFI/GPT" ]
+then 
+	mkdir /mnt/gentoo/boot/efi
+	mount /dev/"$1"p2 /mnt/gentoo/boot/efi
+fi	
+cp chroot_install.sh /mnt/gentoo
+ 
 #stage3 tar
-
 cd /mnt/gentoo
-curl -o stage3-tar https://distfiles.gentoo.org/releases/amd64/autobuilds/current-stage3-amd64-openrc/stage3-amd64-openrc-20231119T164701Z.tar.xz 
+curl -o stage3-tar https://mirror.csclub.uwaterloo.ca/gentoo-distfiles/releases/amd64/autobuilds/current-stage3-amd64-openrc/stage3-amd64-openrc-20231126T163200Z.tar.xz 
 tar xpf stage3-tar
 
 #chroot
@@ -49,4 +134,4 @@ mount --make-rslave /mnt/gentoo/dev
 mount --bind /run /mnt/gentoo/run
 mount --make-slave /mnt/gentoo/run
 cp /etc/resolv.conf etc
-chroot . /chroot_install.sh "$1" "$2" "$3" "$4" 
+chroot . /chroot_install.sh "$1" "$2" $root1 $username $user1  

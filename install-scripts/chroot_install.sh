@@ -7,15 +7,15 @@ emerge -vuDN @world
 
 #user accounts
 (
-echo "$2"
-echo "$2"
+echo "$3"
+echo "$3"
 ) | passwd
 
-useradd -g users -G wheel,portage,audio,video,usb,cdrom -m "$3"
+useradd -g users -G wheel,portage,audio,video,usb,cdrom -m "$4"
 (
-echo "$4"
-echo "$4"
-) | passwd "$3"
+echo "$5"
+echo "$5"
+) | passwd "$4"
 
 #install vim 
 emerge -v vim 
@@ -54,10 +54,16 @@ make modules_install
 make install
 
 #bootloader 
-
-echo GRUB_PLATFORMS=\"pc\" >> /etc/portage/make.conf
-emerge sys-boot/grub
-grub-install /dev/"$1" --target=i386-pc
+if [ "$2" != "UEFI/GPT" ]
+then
+	echo GRUB_PLATFORMS=\"pc\" >> /etc/portage/make.conf
+	emerge sys-boot/grub
+	grub-install /dev/"$1" --target=i386-pc
+else 
+	echo GRUB_PLATFORMS=\"efi-64\" >> /etc/portage/make.conf
+	emerge sys-boot/grub
+        grub-install /dev/"$1" --target=x86_64-efi --efi-directory=/boot/efi
+fi
 grub-mkconfig -o /boot/grub/grub.cfg
 
 #network 
